@@ -1,10 +1,4 @@
-import SocketServer
-import threading
-import hashlib
-import time
-import socket
-import sys
-import random
+import threading, hashlib, time, socket, sys, random, SocketServer
 
 def makeChallenge():
     al = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -40,6 +34,7 @@ def report(name, password, server, port):
     sendLine( sock, ":".join( [name, response] ) )
 
 def serve( passwords, interval, hostname, port, filename = None ):
+    lock = threading.Lock()
     locations = {}
     class TcpHandler ( SocketServer.BaseRequestHandler ):
         def handle(self):
@@ -50,7 +45,9 @@ def serve( passwords, interval, hostname, port, filename = None ):
             password = passwords[ name ]
             correct = hashlib.sha1( name + challenge + password ).hexdigest()
             if correct == answer:
+                lock.acquire()
                 locations[ name ] = time.time(), self.client_address[0]
+                lock.release()
     class ThreadedTcpServer ( SocketServer.ThreadingMixIn, SocketServer.TCPServer ):
         pass
     server = ThreadedTcpServer( (hostname, port), TcpHandler )
@@ -60,15 +57,17 @@ def serve( passwords, interval, hostname, port, filename = None ):
     t0 = None
     while True:
         if (not t0) or ((time.time() - t0) > interval):
+            lock.acquire()
             if filename:
                 f = open( filename, "w" )
             else:
                 f = sys.stdout
             t0 = time.time()
             for name, (t,address) in locations.items():
-                print>>f, "%s (%ds ago): %s" % ( name, int(t0 - t), address )
+                print>>f, "%s:%d:%s" % ( name, int(t0 - t), address )
             if filename:
                 f.close()
+            lock.release()
         time.sleep( 1.0 )
 
 if __name__ == '__main__':
