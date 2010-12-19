@@ -49,7 +49,6 @@ def serve( passwords, interval, hostname, port, filename = None ):
             name,answer = getLine( self.request ).split(":")
             password = passwords[ name ]
             correct = hashlib.sha1( name + challenge + password ).hexdigest()
-            print correct,answer
             if correct == answer:
                 locations[ name ] = time.time(), self.client_address[0]
     class ThreadedTcpServer ( SocketServer.ThreadingMixIn, SocketServer.TCPServer ):
