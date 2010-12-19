@@ -39,7 +39,7 @@ def report(name, password, server, port):
     response = hashlib.sha1( name + challenge + password ).hexdigest()
     sendLine( sock, ":".join( [name, response] ) )
 
-def serve( passwords, interval, port, filename = None ):
+def serve( passwords, interval, hostname, port, filename = None ):
     locations = {}
     class TcpHandler ( SocketServer.BaseRequestHandler ):
         def handle(self):
@@ -54,7 +54,7 @@ def serve( passwords, interval, port, filename = None ):
                 locations[ name ] = time.time(), self.client_address[0]
     class ThreadedTcpServer ( SocketServer.ThreadingMixIn, SocketServer.TCPServer ):
         pass
-    server = ThreadedTcpServer( ("localhost", port), TcpHandler )
+    server = ThreadedTcpServer( (hostname, port), TcpHandler )
     server_thread = threading.Thread( target=server.serve_forever )
     server_thread.setDaemon( True )
     server_thread.start()
@@ -85,9 +85,12 @@ if __name__ == '__main__':
                        default=31589,
                        help="set the PORT",
                        metavar="PORT" )
-    parser.add_option( "-c", "--connect", dest="host", default = None,
-                       help="don't run in server mode, but connect to HOST",
+    parser.add_option( "-H", "--host", dest="host", default = "localhost",
+                       help="set the host name to HOST",
                        metavar="HOST" )
+    parser.add_option( "-s", "--serve", dest="serve", default = False,
+                       action="store_true",
+                       help="run in server mode" )
     parser.add_option( "-n", "--name", dest="name", default = None,
                        help="set the NAME",
                        metavar="NAME" )
@@ -95,11 +98,11 @@ if __name__ == '__main__':
                        help="reports to FILENAME",
                        metavar="FILENAME" )
     options, args = parser.parse_args()
-    if options.host and options.name and options.password and options.port:
-        report( options.name, options.password, options.host, int( options.port ) )
+    if options.serve:
+        serve( UniversalPassword( options.password ),
+               int( options.interval ),
+               options.host,
+               int( options.port ),
+               options.filename )
     else:
-        if options.password and options.port:
-            serve( UniversalPassword( options.password ),
-                   int( options.interval ),
-                   int( options.port ),
-                   options.filename )
+        report( options.name, options.password, options.host, int( options.port ) )
