@@ -1,1 +1,7 @@
 A script to keep track of IP addresses.
+
+(The way this is supposed to be used is that the
+ server is running on a server with a registered
+ domain (or a fixed IP), and the client is set
+ as a cron job or equivalent on all the hosts
+ that should be tracked.)
